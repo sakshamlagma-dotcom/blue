@@ -3,12 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Blue — Think. Plan. Act.</title>
+    <title>BLUE Search — Search Smarter. Discover More.</title>
+    <meta name="description" content="A thoughtful search experience with genuine search results, supported instant answers, and local privacy controls." />
     <meta name="theme-color" content="#0b1020" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%233b6bff%22/></svg>" />
+    <script>
+      try {
+        const saved = JSON.parse(localStorage.getItem("blue-search-preferences") || "{}");
+        const theme = ["light", "dark"].includes(saved.theme)
+          ? saved.theme
+          : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="./src/main.jsx"></script>
   </body>
 </html>

@@ -1,19 +1,48 @@
-const BASE = "/api";
+const BASE = (import.meta.env?.VITE_ASSISTANT_API_BASE || "/api").replace(/\/+$/, "");
+const ACCESS_TOKEN_KEY = "blue-assistant-access-token";
+
+function getAccessToken() {
+  try {
+    return sessionStorage.getItem(ACCESS_TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function setAccessToken(token) {
+  try {
+    if (token) sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+    else sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 async function request(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (typeof FormData === "undefined" || !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+  const token = getAccessToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
   const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    headers,
   });
   const isJson = res.headers.get("content-type")?.includes("application/json");
   const data = isJson ? await res.json() : null;
   if (!res.ok) {
-    throw new Error(data?.error || `Request failed (${res.status})`);
+    const error = new Error(data?.error || `Request failed (${res.status})`);
+    error.status = res.status;
+    throw error;
   }
   return data;
 }
 
 export const api = {
+  getAccessToken,
+  setAccessToken,
   health: () => request("/health"),
 
   listConversations: () => request("/conversations"),
@@ -33,9 +62,16 @@ export const api = {
   uploadFiles: async (files) => {
     const formData = new FormData();
     for (const f of files) formData.append("files", f);
-    const res = await fetch(`${BASE}/files/upload`, { method: "POST", body: formData });
+    const headers = new Headers();
+    const token = getAccessToken();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    const res = await fetch(`${BASE}/files/upload`, { method: "POST", headers, body: formData });
     const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || "Upload failed");
+    if (!res.ok) {
+      const error = new Error(data?.error || "Upload failed");
+      error.status = res.status;
+      throw error;
+    }
     return data;
   },
 };

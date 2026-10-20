@@ -4,6 +4,11 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverRoot = path.resolve(__dirname, "../../");
+const nodeEnv = process.env.NODE_ENV || "development";
+const host = process.env.HOST || (nodeEnv === "production" ? "0.0.0.0" : "127.0.0.1");
+const assistantAccessToken = process.env.ASSISTANT_ACCESS_TOKEN || "";
+const searchOnly = /^(1|true|yes)$/i.test(process.env.SEARCH_ONLY || "");
+const isLoopbackHost = ["127.0.0.1", "::1", "localhost"].includes(host.toLowerCase());
 
 function toInt(value, fallback) {
   const n = Number.parseInt(value, 10);
@@ -12,8 +17,13 @@ function toInt(value, fallback) {
 
 export const env = {
   port: toInt(process.env.PORT, 8787),
-  nodeEnv: process.env.NODE_ENV || "development",
+  nodeEnv,
+  host,
   clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  searchOnly,
+  assistantAccessToken,
+  assistantAuthenticationRequired:
+    !searchOnly && (Boolean(assistantAccessToken) || nodeEnv === "production" || !isLoopbackHost),
 
   aiProvider: process.env.AI_PROVIDER || "gemini",
   geminiApiKey: process.env.GEMINI_API_KEY || "",
@@ -21,6 +31,10 @@ export const env = {
 
   searchProvider: process.env.SEARCH_PROVIDER || "duckduckgo",
   serpapiKey: process.env.SERPAPI_KEY || "",
+  searchRequestTimeoutMs: Math.min(
+    Math.max(toInt(process.env.SEARCH_REQUEST_TIMEOUT_MS, 10000), 1000),
+    30000
+  ),
 
   databasePath: path.resolve(serverRoot, process.env.DATABASE_PATH || "./data/blue.sqlite"),
 
@@ -44,7 +58,15 @@ export const env = {
 
 export function assertConfigured() {
   const warnings = [];
-  if (!env.geminiApiKey && env.aiProvider === "gemini") {
+  if (!env.searchOnly && env.assistantAuthenticationRequired && !env.assistantAccessToken) {
+    warnings.push(
+      "ASSISTANT_ACCESS_TOKEN is required when the Assistant server is reachable beyond loopback."
+    );
+  }
+  if (env.assistantAccessToken && env.assistantAccessToken.length < 32) {
+    warnings.push("ASSISTANT_ACCESS_TOKEN should be at least 32 characters.");
+  }
+  if (!env.searchOnly && !env.geminiApiKey && env.aiProvider === "gemini") {
     warnings.push(
       "GEMINI_API_KEY is not set. Chat/agent requests will fail until you add it to server/.env."
     );

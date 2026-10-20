@@ -1,5 +1,11 @@
 # 🔵 Blue — Think. Plan. Act.
 
+> **BLUE Search is now the home experience.** The existing assistant remains reachable from the Search header at `#assistant`; its chat, server, and database remain in place. Search setup and deployment are documented in [API_SETUP.md](API_SETUP.md) and [DEPLOYMENT.md](DEPLOYMENT.md).
+
+BLUE Search has no independent web index. DuckDuckGo Instant Answers may return a supported summary, and the optional server-side SerpAPI integration supplies web, image, video, news, and education-category results. Without that integration, the interface explains the limitation and offers an external DuckDuckGo search instead of fabricated results.
+
+See [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md) for browser-local data behavior, provider data flows, and known deployment risks.
+
 A real, working AI agent: understands your request, plans steps, calls tools (web search,
 calculator, file reader, URL reader), executes them, and gives you a final answer — with a
 live activity indicator so you can see what it's doing.

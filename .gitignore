@@ -29,3 +29,8 @@ yarn-error.log*
 # Build / Dist folders
 dist/
 build/
+**/.env
+**/.env.*
+!**/.env.example
+**/data/
+**/uploads/

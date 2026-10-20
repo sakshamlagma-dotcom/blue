@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { fetchPublicUrl } from "./safeUrlFetch.js";
 
 export const urlReaderTool = {
   name: "url_reader",
@@ -12,31 +13,21 @@ export const urlReaderTool = {
     required: ["url"],
   },
   async execute({ url }) {
-    if (!url || !/^https?:\/\//i.test(url)) {
-      throw new Error("url_reader requires a valid absolute 'url' starting with http(s)://");
+    const response = await fetchPublicUrl(url);
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(`Could not fetch URL (status ${response.status}).`);
     }
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
-      },
-      redirect: "follow",
-    });
-    if (!res.ok) {
-      throw new Error(`Could not fetch URL (status ${res.status}).`);
+    const contentType = response.contentType;
+    if (!contentType.toLowerCase().includes("text/html")) {
+      return { url: response.url, note: `Non-HTML content-type (${contentType}); cannot extract text.` };
     }
-    const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("text/html")) {
-      return { url, note: `Non-HTML content-type (${contentType}); cannot extract text.` };
-    }
-    const html = await res.text();
-    const $ = cheerio.load(html);
+    const $ = cheerio.load(response.body);
     $("script, style, nav, footer, header, noscript").remove();
     const title = $("title").text().trim();
     let text = $("body").text().replace(/\s+/g, " ").trim();
     const MAX_CHARS = 12000;
     const truncated = text.length > MAX_CHARS;
     if (truncated) text = text.slice(0, MAX_CHARS);
-    return { url, title, truncated, content: text };
+    return { url: response.url, title, truncated, content: text };
   },
 };

@@ -7,6 +7,7 @@ router.get("/health", (req, res) => {
     status: "ok",
     provider: env.aiProvider,
     geminiConfigured: Boolean(env.geminiApiKey),
+    assistantAuthenticationRequired: env.assistantAuthenticationRequired,
     time: new Date().toISOString(),
   });
 });
