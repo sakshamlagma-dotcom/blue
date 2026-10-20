@@ -13,7 +13,7 @@ const MODES = [
   { id: "files", label: "Files" },
 ];
 
-export default function App() {
+export default function App({ onGoSearch }) {
   const [theme, setTheme] = useState(() => localStorage.getItem("blue-theme") || "dark");
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -50,8 +50,15 @@ export default function App() {
       const data = await api.listConversations();
       setConversations(data.conversations);
     } catch (e) {
-      // Backend may not be running yet; fail silently on initial load.
+      if (e.status === 401 || e.status === 503) {
+        setError(`${e.message} Open Settings to configure access.`);
+      }
     }
+  }
+
+  async function handleAccessTokenChange() {
+    setError(null);
+    await refreshConversations();
   }
 
   async function openConversation(id) {
@@ -195,6 +202,7 @@ export default function App() {
           </div>
 
           <div className="topbar-actions">
+            <button className="settings-btn" onClick={onGoSearch}>BLUE Search</button>
             <button
               className="theme-toggle"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -227,7 +235,7 @@ export default function App() {
               </div>
               {health && !health.geminiConfigured && (
                 <div style={{ color: "var(--warning)", fontSize: 12.5, marginTop: 10 }}>
-                  ⚠ No GEMINI_API_KEY configured on the server — add one to server/.env to enable responses.
+                  ⚠ No AI provider key is configured on the server — configure it there to enable responses.
                 </div>
               )}
             </div>
@@ -275,6 +283,7 @@ export default function App() {
         theme={theme}
         onThemeChange={setTheme}
         health={health}
+        onAccessTokenChange={handleAccessTokenChange}
       />
     </div>
   );

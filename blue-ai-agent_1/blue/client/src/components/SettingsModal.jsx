@@ -1,5 +1,37 @@
-export default function SettingsModal({ open, onClose, theme, onThemeChange, health }) {
+import { useEffect, useState } from "react";
+import { api } from "../lib/api.js";
+
+export default function SettingsModal({
+  open,
+  onClose,
+  theme,
+  onThemeChange,
+  health,
+  onAccessTokenChange,
+}) {
+  const [accessToken, setAccessToken] = useState("");
+  const [accessTokenMessage, setAccessTokenMessage] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setAccessToken(api.getAccessToken());
+      setAccessTokenMessage("");
+    }
+  }, [open]);
+
   if (!open) return null;
+
+  async function saveAccessToken() {
+    const saved = api.setAccessToken(accessToken.trim());
+    if (!saved) {
+      setAccessTokenMessage("This browser session cannot store the access token.");
+      return;
+    }
+    setAccessTokenMessage(
+      accessToken.trim() ? "Token saved for this browser tab." : "Token cleared for this browser tab."
+    );
+    await onAccessTokenChange?.();
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -19,6 +51,33 @@ export default function SettingsModal({ open, onClose, theme, onThemeChange, hea
             <option value="dark">Dark</option>
             <option value="light">Light</option>
           </select>
+        </div>
+
+        <div className="settings-row" style={{ alignItems: "flex-start", flexDirection: "column", gap: 8 }}>
+          <label className="settings-label" htmlFor="assistant-access-token">Assistant access token</label>
+          <div style={{ display: "flex", gap: 8, width: "100%" }}>
+            <input
+              id="assistant-access-token"
+              className="settings-select"
+              type="password"
+              autoComplete="off"
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              placeholder="Required by protected Assistant servers"
+              style={{ flex: 1, minWidth: 0 }}
+            />
+            <button className="settings-btn" onClick={saveAccessToken}>Save</button>
+          </div>
+          <span className="settings-value">
+            {health?.assistantAuthenticationRequired
+              ? "This server requires a token. It is kept in this tab's session storage."
+              : health
+                ? "This server does not require a token."
+                : "A local loopback server can be used without a token."}
+          </span>
+          {accessTokenMessage && (
+            <span className="settings-value" role="status">{accessTokenMessage}</span>
+          )}
         </div>
 
         <div className="settings-row">
