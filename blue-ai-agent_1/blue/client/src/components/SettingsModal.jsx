@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api.js";
 
 export default function SettingsModal({
@@ -11,11 +11,54 @@ export default function SettingsModal({
 }) {
   const [accessToken, setAccessToken] = useState("");
   const [accessTokenMessage, setAccessTokenMessage] = useState("");
+  const [themeMessage, setThemeMessage] = useState("");
+  const panelRef = useRef(null);
+  const closeRef = useRef(onClose);
+
+  useEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const previouslyFocused = document.activeElement;
+    const panel = panelRef.current;
+    const focusableSelector =
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusables = () => [...(panel?.querySelectorAll(focusableSelector) || [])];
+    focusables()[0]?.focus();
+
+    const handleKeys = (event) => {
+      if (event.key === "Escape") {
+        closeRef.current?.();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      if (!items.length) {
+        event.preventDefault();
+      } else if (event.shiftKey && document.activeElement === items[0]) {
+        event.preventDefault();
+        items[items.length - 1].focus();
+      } else if (!event.shiftKey && document.activeElement === items[items.length - 1]) {
+        event.preventDefault();
+        items[0].focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeys);
+    return () => {
+      window.removeEventListener("keydown", handleKeys);
+      if (previouslyFocused instanceof HTMLElement && previouslyFocused.isConnected) {
+        previouslyFocused.focus();
+      }
+    };
+  }, [open]);
 
   useEffect(() => {
     if (open) {
       setAccessToken(api.getAccessToken());
       setAccessTokenMessage("");
+      setThemeMessage("");
     }
   }, [open]);
 
@@ -35,10 +78,18 @@ export default function SettingsModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+      <section
+        ref={panelRef}
+        className="modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="assistant-settings-title"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
-          <h2>Settings</h2>
-          <button className="icon-btn" onClick={onClose}>✕</button>
+          <h2 id="assistant-settings-title">Settings</h2>
+          <button className="icon-btn" type="button" onClick={onClose} aria-label="Close settings">✕</button>
         </div>
 
         <div className="settings-row">
@@ -66,7 +117,7 @@ export default function SettingsModal({
               placeholder="Required by protected Assistant servers"
               style={{ flex: 1, minWidth: 0 }}
             />
-            <button className="settings-btn" onClick={saveAccessToken}>Save</button>
+            <button className="settings-btn" type="button" onClick={saveAccessToken}>Save</button>
           </div>
           <span className="settings-value">
             {health?.assistantAuthenticationRequired
@@ -108,25 +159,31 @@ export default function SettingsModal({
         </div>
 
         <div className="settings-row">
-          <span className="settings-label">Clear all local data</span>
+          <span className="settings-label">Clear theme preference</span>
           <button
             className="danger-btn"
+            type="button"
             onClick={() => {
-              if (confirm("This clears your locally cached theme preference. Continue?")) {
-                localStorage.clear();
-                location.reload();
+              if (confirm("Clear the saved Assistant theme preference? Search history and bookmarks will be kept.")) {
+                try {
+                  localStorage.removeItem("blue-theme");
+                  location.reload();
+                } catch {
+                  setThemeMessage("This browser could not clear the saved theme preference.");
+                }
               }
             }}
           >
             Clear
           </button>
         </div>
+        {themeMessage && <p className="settings-value" role="status">{themeMessage}</p>}
 
         <p style={{ fontSize: 11.5, color: "var(--text-faint)", marginTop: 14, lineHeight: 1.5 }}>
           Blue v1.0 — Think. Plan. Act. Conversations and messages are stored in Blue's local
           database on the server, not in your browser.
         </p>
-      </div>
+      </section>
     </div>
   );
 }

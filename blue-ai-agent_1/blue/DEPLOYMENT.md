@@ -1,5 +1,7 @@
 # Deployment
 
+The Vite 7 client build requires **Node.js 20.19+ or 22.12+**. The backend runtime itself supports Node.js 18 or newer.
+
 ## GitHub Pages: static BLUE Search
 
 The repository includes `.github/workflows/pages.yml`, which builds `client/` and deploys only its `dist/` directory. This is a static frontend deployment; GitHub Pages does not run the Express server or keep backend secrets.

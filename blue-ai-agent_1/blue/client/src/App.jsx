@@ -13,8 +13,16 @@ const MODES = [
   { id: "files", label: "Files" },
 ];
 
+function readThemePreference() {
+  try {
+    return localStorage.getItem("blue-theme") === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
 export default function App({ onGoSearch }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem("blue-theme") || "dark");
+  const [theme, setTheme] = useState(readThemePreference);
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -31,7 +39,11 @@ export default function App({ onGoSearch }) {
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("blue-theme", theme);
+    try {
+      localStorage.setItem("blue-theme", theme);
+    } catch {
+      // Theme changes remain available for the current page when storage is blocked.
+    }
   }, [theme]);
 
   useEffect(() => {
