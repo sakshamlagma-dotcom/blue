@@ -4,15 +4,16 @@
 
 BLUE Search has no independent web index. DuckDuckGo Instant Answers may return a supported summary, and the optional server-side SerpAPI integration supplies web, image, video, news, and education-category results. Without that integration, the interface explains the limitation and offers an external DuckDuckGo search instead of fabricated results.
 
-See [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md) for browser-local data behavior, provider data flows, and known deployment risks.
+See [PROJECT_AUDIT.md](PROJECT_AUDIT.md) for the feature checklist and verified limitations; see [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md) for browser-local data behavior, provider data flows, and security controls.
 
 A real, working AI agent: understands your request, plans steps, calls tools (web search,
 calculator, file reader, URL reader), executes them, and gives you a final answer — with a
 live activity indicator so you can see what it's doing.
 
 This is **Phase 1** of the full Blue spec: the agent engine, tool system, chat UI, conversation
-history/persistence, and file upload + analysis are built and working end-to-end. Sections not
-yet implemented (voice, image generation, auth) are called out below with what's needed to add them.
+history/persistence, and file upload + analysis are built and working end-to-end. Voice output,
+image generation, and per-user account isolation are not implemented; Assistant API access uses
+a shared bearer token when deployed beyond loopback.
 
 ---
 
@@ -52,7 +53,7 @@ These were requested in the full spec. The architecture supports adding them, bu
 
 - **Voice (STT/TTS)** — needs browser Web Speech API or a paid STT/TTS API; no fake mic button was added.
 - **Image generation** — needs an image-gen API (e.g. Gemini image models, Stable Diffusion API); no fake images are shown anywhere.
-- **Authentication / multi-user accounts** — DB schema has a placeholder-friendly shape but no user table/auth flow yet.
+- **Per-user authentication and multi-user isolation** — deployments can require a shared bearer token, but there are no user accounts, conversation ownership checks, or per-user upload boundaries.
 - **Long-term memory extraction** — the `memories` table exists in the schema but nothing writes to it yet.
 
 ---
@@ -81,7 +82,7 @@ blue/
 
 ## 5. Installation
 
-Requires **Node.js 18+** (uses native `fetch`).
+Requires **Node.js 20.19+** (or 22.12+) for the Vite 7 client; the server also uses native `fetch`.
 
 ```bash
 # 1. Clone/extract the project, then:
@@ -170,7 +171,8 @@ GET    /api/health
 
 ## 12. Safety notes
 
-- API keys are read only from `server/.env` — never sent to or stored in the frontend.
+- API keys are read only from server-side environment variables — never sent to or stored in the frontend. Gemini authentication is sent in a request header.
+- Web results, fetched pages, and uploaded files are untrusted input. After reading them, the agent disables further web and file tools for that turn to reduce prompt-injection exfiltration risk; this does not provide multi-user data isolation.
 - The calculator tool uses a hand-written tokenizer/evaluator — no `eval()`.
 - Uploaded files are validated by extension and size (`MAX_UPLOAD_MB`), and `file_reader` blocks
   path traversal (it only reads by basename inside the configured upload directory).

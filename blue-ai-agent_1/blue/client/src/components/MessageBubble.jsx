@@ -2,6 +2,27 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import AgentActivity from "./AgentActivity.jsx";
 
+function safeExternalUrl(value) {
+  if (typeof value !== "string") return "";
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password
+      ? url.href
+      : "";
+  } catch {
+    return "";
+  }
+}
+
+const markdownComponents = {
+  a({ href, children }) {
+    const safeHref = safeExternalUrl(href);
+    return safeHref ? (
+      <a href={safeHref} target="_blank" rel="noopener noreferrer">{children}</a>
+    ) : <span>{children}</span>;
+  },
+};
+
 function extractSources(toolCalls) {
   if (!toolCalls) return [];
   const sources = [];
@@ -15,10 +36,11 @@ function extractSources(toolCalls) {
   }
   // de-dupe by url
   const seen = new Set();
-  return sources.filter((s) => {
-    if (seen.has(s.url)) return false;
-    seen.add(s.url);
-    return true;
+  return sources.flatMap((source) => {
+    const url = safeExternalUrl(source.url);
+    if (!url || seen.has(url)) return [];
+    seen.add(url);
+    return [{ ...source, url }];
   });
 }
 
@@ -46,13 +68,15 @@ export default function MessageBubble({ message, onCopy, onRegenerate, onEdit, i
           {isUser ? (
             <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{message.content}</p>
           ) : (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content || ""}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+              {message.content || ""}
+            </ReactMarkdown>
           )}
 
           {sources.length > 0 && (
             <div className="sources-row">
               {sources.map((s, i) => (
-                <a key={i} className="source-chip" href={s.url} target="_blank" rel="noreferrer">
+                <a key={i} className="source-chip" href={s.url} target="_blank" rel="noopener noreferrer">
                   🔗 {s.title || s.url}
                 </a>
               ))}

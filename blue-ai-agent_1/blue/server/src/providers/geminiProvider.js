@@ -50,7 +50,7 @@ function toGeminiTools(tools) {
 
 async function callGemini({ contents, systemPrompt, tools, temperature = 0.6 }) {
   requireKey();
-  const url = `${API_BASE}/${env.geminiModel}:generateContent?key=${env.geminiApiKey}`;
+  const url = `${API_BASE}/${env.geminiModel}:generateContent`;
   const body = {
     contents,
     systemInstruction: systemPrompt
@@ -62,7 +62,10 @@ async function callGemini({ contents, systemPrompt, tools, temperature = 0.6 }) 
 
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": env.geminiApiKey,
+    },
     body: JSON.stringify(body),
   });
 

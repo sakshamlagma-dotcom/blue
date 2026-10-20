@@ -19,6 +19,10 @@
 
 The Assistant URL reader accepts only standard-port HTTP(S) URLs, rejects credentials and private/reserved IP destinations, resolves and pins public DNS addresses for each request, revalidates each redirect, limits redirects and response size, and enforces a request timeout. This reduces SSRF exposure but does not replace network egress controls; production hosts should additionally block private and metadata networks at the network layer.
 
+## Untrusted Assistant tool results
+
+Web search results, fetched pages, and uploaded-file contents are untrusted data and may contain prompt-injection instructions. The agent is instructed not to follow instructions embedded in those results. After any of these tools returns data, subsequent web and file tools are disabled for the rest of that turn; the local calculator remains available. This blocks a common tool-mediated route for sending conversation or file content to an attacker-controlled public URL, but it cannot guarantee that a model will interpret hostile content correctly or prevent the model from repeating it in its answer. Treat model output as untrusted and do not use the shared Assistant token for multi-user data isolation.
+
 ## Dependency audit
 
 Client Vite/plugin dependencies and server document-parser dependencies were updated to address the advisories found in the initial audit. The Mammoth dependency tree pins a patched `argparse` release because Mammoth still declares the vulnerable legacy range. Re-run `npm audit` in both `client/` and `server/` when upgrading dependencies. The production Pages artifact is static and does not include Vite's development server.
